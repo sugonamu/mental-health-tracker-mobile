@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mental_health_tracker/menu.dart';
-import 'package:mental_health_tracker/moodentry_form.dart';
+import 'package:mental_health_tracker/screens/menu.dart';
+import 'package:mental_health_tracker/screens/moodentry_form.dart';
 
 class LeftDrawer extends StatelessWidget {
   const LeftDrawer({super.key});
@@ -54,10 +54,10 @@ class LeftDrawer extends StatelessWidget {
             leading: const Icon(Icons.mood),
             title: const Text('Add Mood'),
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => MoodEntryFormPage(),
+                  builder: (context) => const MoodEntryFormPage(),
                 ),
               );
             },
