@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mental_health_tracker/screens/menu.dart';
 import 'package:mental_health_tracker/widgets/left_drawer.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
+import 'dart:convert';
 
 class MoodEntryFormPage extends StatefulWidget {
   const MoodEntryFormPage({super.key});
@@ -10,15 +14,21 @@ class MoodEntryFormPage extends StatefulWidget {
 
 class _MoodEntryFormPageState extends State<MoodEntryFormPage> {
   final _formKey = GlobalKey<FormState>();
-  String _mood = "";
-  String _feelings = "";
+  String _mood = '';
+  String _feelings = '';
   int _moodIntensity = 0;
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mood Entry"),
+        title: const Center(
+          child: Text(
+            'Add Your Mood Today',
+          ),
+        ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
@@ -26,11 +36,11 @@ class _MoodEntryFormPageState extends State<MoodEntryFormPage> {
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.all(8.0),
                 child: TextFormField(
                   decoration: InputDecoration(
                     hintText: "Mood",
@@ -46,14 +56,14 @@ class _MoodEntryFormPageState extends State<MoodEntryFormPage> {
                   },
                   validator: (String? value) {
                     if (value == null || value.isEmpty) {
-                      return "Mood cannot be empty!";
+                      return "Mood tidak boleh kosong!";
                     }
                     return null;
                   },
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.all(8.0),
                 child: TextFormField(
                   decoration: InputDecoration(
                     hintText: "Feelings",
@@ -69,18 +79,18 @@ class _MoodEntryFormPageState extends State<MoodEntryFormPage> {
                   },
                   validator: (String? value) {
                     if (value == null || value.isEmpty) {
-                      return "Feelings cannot be empty!";
+                      return "Feelings tidak boleh kosong!";
                     }
                     return null;
                   },
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.all(8.0),
                 child: TextFormField(
                   decoration: InputDecoration(
-                    hintText: "Mood Intensity",
-                    labelText: "Mood Intensity",
+                    hintText: "Mood intensity",
+                    labelText: "Mood intensity",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(5.0),
                     ),
@@ -92,58 +102,62 @@ class _MoodEntryFormPageState extends State<MoodEntryFormPage> {
                   },
                   validator: (String? value) {
                     if (value == null || value.isEmpty) {
-                      return "Mood intensity cannot be empty!";
+                      return "Mood intensity tidak boleh kosong!";
                     }
                     if (int.tryParse(value) == null) {
-                      return "Mood intensity must be a number!";
+                      return "Mood intensity harus berupa angka!";
                     }
                     return null;
                   },
                 ),
               ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    showDialog(
-                      context: context,
-                      builder: (context) {
-                        return Dialog(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          elevation: 15,
-                          child: ListView(
-                            padding: const EdgeInsets.all(16),
-                            shrinkWrap: true,
-                            children: <Widget>[
-                              const Center(
-                                  child: Text('Successfully Added Mood')),
-                              const SizedBox(height: 16),
-                              Text("Mood: $_mood"),
-                              Text("Feelings: $_feelings"),
-                              Text("Intensity: $_moodIntensity"),
-                              const SizedBox(height: 20),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                },
-                                child: const Text("Back"),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16.0),
-                  foregroundColor: Colors.white,
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                ),
-                child: const Text(
-                  "Save",
-                  style: TextStyle(fontSize: 16),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ElevatedButton(
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all(
+                          Theme.of(context).colorScheme.primary),
+                    ),
+                    onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                            // Send request to Django and wait for the response
+                            // TODO: Change the URL to your Django app's URL. Don't forget to add the trailing slash (/) if needed.
+                            final response = await request.postJson(
+                                "http://localhost:8000/create-flutter/",
+                                jsonEncode(<String, String>{
+                                    'mood': _mood,
+                                    'mood_intensity': _moodIntensity.toString(),
+                                    'feelings': _feelings,
+                                // TODO: Adjust the fields with your project
+                                }),
+                            );
+                            if (context.mounted) {
+                                if (response['status'] == 'success') {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                    content: Text("New mood has saved successfully!"),
+                                    ));
+                                    Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => MyHomePage()),
+                                    );
+                                } else {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(const SnackBar(
+                                        content:
+                                            Text("Something went wrong, please try again."),
+                                    ));
+                                }
+                            }
+                        }
+                    },
+                    child: const Text(
+                      "Save",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
                 ),
               ),
             ],
